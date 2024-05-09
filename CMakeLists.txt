@@ -14,9 +14,9 @@ project ("obj_loader")
 # Add source to this project's executable.
 add_executable (
 	obj_loader 
-	"src/obj_loader.cpp" 
-	"include/obj_loader.h"
-)
+	"src/main.cpp" 
+	
+ "src/engine.cpp" "include/engine.h")
 
 add_subdirectory(third_party)
 
