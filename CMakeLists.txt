@@ -16,7 +16,7 @@ add_executable (
 	obj_loader 
 	"src/main.cpp" 
 	
- "src/engine.cpp" "include/engine.h")
+ "src/engine.cpp" "include/engine.h" "include/shader.h" "src/shader.cpp")
 
 add_subdirectory(third_party)
 
@@ -35,3 +35,11 @@ target_link_libraries(
 )
 
 target_compile_features(obj_loader PUBLIC cxx_std_20)
+
+# https://stackoverflow.com/a/65133324
+# copy assets folder over
+
+add_custom_target(copy_assets
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_LIST_DIR}/copy-assets.cmake
+)
+add_dependencies(obj_loader copy_assets)
