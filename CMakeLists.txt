@@ -14,9 +14,14 @@ project ("obj_loader")
 # Add source to this project's executable.
 add_executable (
 	obj_loader 
+    "include/engine.h" 
+    "include/shader.h"
+    "include/mesh.h"
 	"src/main.cpp" 
-	
- "src/engine.cpp" "include/engine.h" "include/shader.h" "src/shader.cpp")
+    "src/engine.cpp" 
+    "src/shader.cpp" 
+    "src/mesh.cpp"
+)
 
 add_subdirectory(third_party)
 
@@ -32,6 +37,7 @@ target_link_libraries(
         glad
         glfw
         imgui
+        glm::glm
 )
 
 target_compile_features(obj_loader PUBLIC cxx_std_20)
