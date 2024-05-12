@@ -5,7 +5,7 @@ project(glad)
 add_library(
         glad
         glad/src/gl.c
-        glad/src/wgl.c
+        
 )
 
 target_include_directories(glad PUBLIC glad/include)
