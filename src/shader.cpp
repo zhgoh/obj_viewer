@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include <glad/gl.h>
+#include <glm/gtc/type_ptr.hpp>
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath) {
 	auto vertexShader = LoadFile(vertexPath);
@@ -77,4 +78,8 @@ void Shader::SetInt(std::string_view name, int value) const {
 
 void Shader::SetFloat(std::string_view name, float value) const {
 	glUniform1f(glGetUniformLocation(programID, name.data()), value);
+}
+
+void Shader::SetMatrix(std::string_view name, glm::mat4 value) const {
+	glUniformMatrix4fv(glGetUniformLocation(programID, name.data()), 1, GL_FALSE, glm::value_ptr(value));
 }
