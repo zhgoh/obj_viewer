@@ -1,100 +1,121 @@
-#include <utility>
-#include <iostream>
-
 #include "arcballcamera.h"
+
+#include <iostream>
+#include <cmath>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/ext/quaternion_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/ext/scalar_constants.hpp>
 
+// Code reference from https://github.com/oguz81/ArcballCamera/blob/main/main.cpp
+
+static
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
     os << v.x << " : " << v.y << " : " << v.z;
     return os;
 }
 
-ArcballCamera::ArcballCamera(float width, float height, glm::vec3 target)
-    : viewportWidth{ width },
+static
+glm::quat& axis(glm::quat& q, glm::vec3 v) {
+    q.x = v.x;
+    q.y = v.y;
+    q.z = v.z;
+    return q;
+}
+
+static
+glm::vec3 axis(const glm::quat& q) {
+    return glm::vec3(q.x, q.y, q.z);
+}
+
+ArcballCamera::ArcballCamera(float width, float height) : 
+    viewportWidth{ width },
     viewportHeight{ height },
-    radius{ 10 },
-    zoom{ 1.0f },
-    target{ target },
-    lastMousePos{},
-    eye{ target + glm::vec3(0.0f, 0.0f, radius) * zoom },
-    viewMatrix{},
-    rotation{ glm::quat {1.0f, 0.0f, 0.0f, 0.0f} }
+    cosValue_2{},
+    angle{ glm::pi<float>() },
+    startPos{},
+    currentPos{},
+    rotationalAxis{ glm::vec3(1.0f, 0.0f, 0.0f) },
+    rotationalAxis_2 {},
+    position{ glm::vec3(0.0f, 0.0f, -10.0f) },
+    currentQuaternion{},
+    lastQuaternion {glm::quat {0.0f, 1.0f, 0.0f, 0.0f}}
 {
-    UpdateViewMatrix();
 }
 
 void ArcballCamera::SetViewportSize(float width, float height) {
     viewportWidth = width;
     viewportHeight = height;
-    radius = std::min(width * 0.5f, height * 0.5f);
 }
 
 void ArcballCamera::StartDrag(float x, float y) {
-    lastMousePos = ScreenToSphere(x, y);
+    startPos = ScreenToSphere(x, y);
+}
+
+void ArcballCamera::StopDrag() {
+    lastQuaternion.w = cosValue_2;
+    axis(lastQuaternion, rotationalAxis_2);
 }
 
 void ArcballCamera::Drag(float x, float y) {
-    glm::vec3 currentMousePos = ScreenToSphere(x, y);
-    glm::quat q = ComputeRotation(lastMousePos, currentMousePos);
-    rotation = q * rotation;
-    // eye = q * eye;
-    lastMousePos = currentMousePos;
-    UpdateViewMatrix();
-}
-
-void ArcballCamera::Zoom(float zoomFactor) {
-    radius *= zoomFactor;
-    UpdateViewMatrix();
+    currentPos = ScreenToSphere(x, y);
+    Rotation();
 }
 
 glm::mat4 ArcballCamera::GetViewMatrix() const {
-    return viewMatrix;
-}
-
-void ArcballCamera::UpdateViewMatrix() {
-    glm::mat4 rotationMatrix = glm::mat4_cast(glm::normalize(rotation));
-    glm::vec3 eye = target + glm::vec3(0.0f, 0.0f, radius) * zoom;
-    eye = glm::vec3(rotationMatrix * glm::vec4(eye, 1.0f));
-    viewMatrix = glm::lookAt(eye, target, glm::vec3(0, 1.0f, 0));
+    glm::mat4 view = glm::mat4(1.0f);// this command must be in the loop. Otherwise, the object moves if there is a glm::rotate func in the lop.    
+    view = glm::translate(view, position);// this, too.  
+    view = glm::rotate(view, angle, rotationalAxis);
+    return view;
 }
 
 glm::vec3 ArcballCamera::ScreenToSphere(float x, float y) const {
-    float ndcX = (2.0f * x - viewportWidth) / viewportWidth;
-    float ndcY = (viewportHeight - 2.0f * y) / viewportHeight;
-    ndcX = -ndcX;
-    ndcY = -ndcY;
-    float z2 = 1.0f - ndcX * ndcX - ndcY * ndcY;
-    float z = z2 > 0.0f ? sqrtf(z2) : 0.0f;
+    const float ndcX = (2.0f * x - viewportWidth) / viewportWidth;
+    const float ndcY = (viewportHeight - 2.0f * y) / viewportHeight;
+    const float zSq = 1.0f - ndcX * ndcX - ndcY * ndcY;
+    const float z = zSq > 0.0f ? sqrt(zSq) : 0.0f;
     return glm::normalize(glm::vec3(ndcX, ndcY, z));
 }
 
-glm::quat ArcballCamera::ComputeRotation(const glm::vec3& from, const glm::vec3& to) const {
-    if (glm::length(from) == 0.0f || glm::length(to) == 0.0f) {
-        return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-    }
+void ArcballCamera::Rotation() {
+    const auto startPosUnitVector = glm::normalize(startPos);
+    const auto currentPosUnitVector = glm::normalize(currentPos);
 
-    glm::vec3 fromNorm = glm::normalize(from);
-    glm::vec3 toNorm = glm::normalize(to);
+    axis(currentQuaternion, glm::normalize(glm::cross(startPos, currentPos)));
 
-    float cosTheta = glm::dot(fromNorm, toNorm);
-    glm::vec3 rotationAxis;
+    auto cosValue = glm::dot(startPosUnitVector, currentPosUnitVector);
+    cosValue = (cosValue > 1.0f) ? 1.0f : cosValue;
 
-    if (cosTheta < -1 + 0.001f) {
-        rotationAxis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), fromNorm);
-        if (glm::length(rotationAxis) < 0.01f) {
-            rotationAxis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), fromNorm);
-        }
-        rotationAxis = glm::normalize(rotationAxis);
-        return glm::angleAxis(glm::pi<float>(), rotationAxis);
-    }
+    const auto theta = acos(cosValue);
+    const auto halfTheta = theta * 0.5f;
+    const auto sinHalfTheta = sin(halfTheta);
 
-    rotationAxis = glm::cross(fromNorm, toNorm);
-    float s = sqrt((1 + cosTheta) * 2);
-    float invs = 1 / s;
+    currentQuaternion.w = cos(halfTheta);
+    currentQuaternion.x = currentQuaternion.x * sinHalfTheta;
+    currentQuaternion.y = currentQuaternion.y * sinHalfTheta;
+    currentQuaternion.z = currentQuaternion.z * sinHalfTheta;
 
-    return glm::quat(s * 0.5f, rotationAxis.x * invs, rotationAxis.y * invs, rotationAxis.z * invs);
+    cosValue_2 = (currentQuaternion.w * lastQuaternion.w) - glm::dot(axis(currentQuaternion), axis(lastQuaternion));
+    const auto temporaryVector = glm::cross(axis(currentQuaternion), axis(lastQuaternion));
+
+    rotationalAxis_2.x = (currentQuaternion.w * lastQuaternion.x) +
+        (lastQuaternion.w * currentQuaternion.x) +
+        temporaryVector.x;
+
+    rotationalAxis_2.y = (currentQuaternion.w * lastQuaternion.y) +
+        (lastQuaternion.w * currentQuaternion.y) +
+        temporaryVector.y;
+
+    rotationalAxis_2.z = (currentQuaternion.w * lastQuaternion.z) +
+        (lastQuaternion.w * currentQuaternion.z) +
+        temporaryVector.z;
+
+    angle = acos(cosValue_2) * 2.0f;
+    const auto halfAngle = angle * 0.5f;
+
+    rotationalAxis.x = rotationalAxis_2.x / sin(halfAngle);
+    rotationalAxis.y = rotationalAxis_2.y / sin(halfAngle);
+    rotationalAxis.z = rotationalAxis_2.z / sin(halfAngle);
 }

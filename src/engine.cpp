@@ -25,7 +25,7 @@ static glm::vec3 cameraPosition{ 2.0f, 2.0f, 2.0f };
 
 static double currentMouseX, currentMouseY;
 
-static ArcballCamera camera{ 1024.0f, 768.0f, glm::vec3{0.0f, 0.0f, 0.0f } };
+static ArcballCamera camera{ 1024.0f, 768.0f };
 
 static 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -41,6 +41,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         camera.StartDrag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
     } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
         mousePressed = false;
+        camera.StopDrag();
     }
 }
 
