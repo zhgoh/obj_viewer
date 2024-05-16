@@ -16,15 +16,44 @@
 
 #include "shader.h"
 #include "mesh.h"
+#include "arcballcamera.h"
 
 static const char* glsl_version = "#version 330 core";
+static bool mousePressed;
+// static glm::vec3 lastPos;
+static glm::vec3 cameraPosition{ 2.0f, 2.0f, 2.0f };
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+static double currentMouseX, currentMouseY;
+
+static ArcballCamera camera{ 1024.0f, 768.0f, glm::vec3{0.0f, 0.0f, 0.0f } };
+
+static 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
-Engine::Engine(int width, int height) {
+static
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        mousePressed = true;
+        glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
+        camera.StartDrag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
+    } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+        mousePressed = false;
+    }
+}
+
+static
+void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (mousePressed) {
+        glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
+        camera.Drag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
+    }
+}
+
+Engine::Engine(int width, int height) 
+    : mWidth{ width }, mHeight{ height } {
     if (!glfwInit()) {
         std::cerr << "Error initializing glfw3\n";
         throw std::system_error(std::error_code(), "Error initializing glfw3");
@@ -48,6 +77,7 @@ Engine::Engine(int width, int height) {
         throw std::system_error(std::error_code(), "Error initializing glfw3");
     }
 }
+
 Engine::~Engine() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -58,6 +88,11 @@ Engine::~Engine() {
 }
 
 void Engine::Init() {
+    // Make sure glfw callbacks are called before imgui inits
+    glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
+    glfwSetCursorPosCallback(mWindow, mouse_pos_callback);
+    glfwSetKeyCallback(mWindow, key_callback);
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -71,8 +106,6 @@ void Engine::Init() {
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(mWindow, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
-
-    glfwSetKeyCallback(mWindow, key_callback);
 }
 
 void Engine::Run() {
@@ -84,49 +117,60 @@ void Engine::Run() {
     Shader shader{"assets/shaders/model.vs", "assets/shaders/model.fs"};
     shader.SetFloat("outColor", 1.0f);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
-    glEnableVertexAttribArray(0);
+    float horizontalAngle = 3.14f;
+    float verticalAngle = 0.0f;
+    float speed = 3.0f;
+    float mouseSpeed = 0.005f;
+    double lastTime = glfwGetTime();
 
-    glm::vec3 cameraPosition{ 2.0f, 0.0f, 2.0f };
+    // glm::vec3 cameraPosition{ 2.0f, 2.0f, 2.0f };
     glm::vec3 objPosition{ 0.0f, 0.0f, 0.0f };
+    glm::vec3 up{ 0.0f, 1.0f, 0.0f };
     glm::vec3 rotationAxis{ 0.0f, 1.0f, 0.0f };
-    float rotationAngle = 0.0f;
+    float rotationAngle{};
+    glm::quat objRotation{};
+    glm::vec3 cameraDir{};
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_CULL_FACE);
 
     while (!glfwWindowShouldClose(mWindow)) {
+        double currentTime = glfwGetTime();
+        float deltaTime = float(currentTime - lastTime);
+        lastTime = currentTime;
+
         glfwPollEvents();
+
         glClearColor(0.39f, 0.58f, 0.93f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        GUI();
+         GUI();
 
-        ImGui::Begin("Camera");
-        ImGui::DragFloat3("Cam pos", glm::value_ptr(cameraPosition), 0.01f);
+        ImGui::Begin("Camera");;
         ImGui::DragFloat3("Obj pos", glm::value_ptr(objPosition), 0.01f);
-        ImGui::DragFloat3("Obj rot axis", glm::value_ptr(rotationAxis), 0.01f);
-        ImGui::DragFloat("Obj rot angle", &rotationAngle, 0.01f);
+        // ImGui::DragFloat3("Obj rot axis", glm::value_ptr(rotationAxis), 0.01f);
+        // ImGui::DragFloat("Obj rot angle", &rotationAngle, 0.01f);
+        ImGui::DragFloat4("Obj rotation", glm::value_ptr(objRotation), 0.01f);
         ImGui::End();
 
         glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), objPosition);
         glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3{ 1.0f, 1.0f, 1.0f });
         glm::mat4 rotationMatrix = glm::rotate(glm::mat4{1.0f}, rotationAngle, rotationAxis);
+        // glm::mat4 rotationMatrix = glm::mat4_cast(objRotation);
 
         glm::mat4 modelMatrix = translationMatrix * rotationMatrix * scaleMatrix;
 
-        // glm::vec3 cameraPosition{ 0.0f, 10.0f, 10.0f };
-        glm::vec3 cameraTarget{ 0.0f, 0.0f, 0.0f };
-        const glm::mat4 viewMatrix = glm::lookAt(cameraPosition, cameraTarget, glm::vec3(0.0f, 1.0f, 0.0f));
+        // glm::vec3 cameraTarget{ 0.0f, 0.0f, 0.0f };
+        // const glm::mat4 viewMatrix = glm::lookAt(cameraPosition, cameraTarget, up);
+        // glm::quatLookAt(cameraDir, up);
+        const glm::mat4 viewMatrix = camera.GetViewMatrix();
 
         const float fieldOfView = 100.0f;
         const float nearClip = 0.1f;
         const float farClip = 100.0f;
 
-        int width, height;
-        glfwGetWindowSize(mWindow, &width, &height);
-
-        const auto winWidth = static_cast<float>(width);
-        const auto winHeight = static_cast<float>(height);
+        const auto winWidth = static_cast<float>(mWidth);
+        const auto winHeight = static_cast<float>(mHeight);
 
         glm::mat4 projectionMatrix = glm::perspective(
             glm::radians(fieldOfView),  // The vertical Field of View, in radians: the amount of "zoom". Think "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
@@ -143,7 +187,6 @@ void Engine::Run() {
         glBindVertexArray(mesh.GetVAO());
         
         glDrawElements(GL_TRIANGLES, mesh.GetIndicesCount(), GL_UNSIGNED_INT, nullptr);
-
         Render();
         glfwSwapBuffers(mWindow);
     }

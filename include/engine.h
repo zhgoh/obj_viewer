@@ -15,4 +15,5 @@ private:
 	void Render();
 
 	GLFWwindow *mWindow;
+	int mWidth, mHeight;
 };

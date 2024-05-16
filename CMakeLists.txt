@@ -21,7 +21,7 @@ add_executable (
     "src/engine.cpp" 
     "src/shader.cpp" 
     "src/mesh.cpp"
-)
+   "include/arcballcamera.h" "src/arcballcamera.cpp")
 
 add_subdirectory(third_party)
 

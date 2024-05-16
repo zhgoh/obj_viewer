@@ -78,7 +78,7 @@ void Mesh::Load(const char* name) {
 		}
 	}
 
-	mCount = indices.size();
+	mCount = static_cast<GLsizei>(indices.size());
 
 	glGenVertexArrays(1, &mVAO);
 	glBindVertexArray(mVAO);
@@ -103,6 +103,6 @@ GLuint Mesh::GetVAO() const {
 	return mVAO;
 }
 
-size_t Mesh::GetIndicesCount() const {
+GLsizei Mesh::GetIndicesCount() const {
 	return mCount;
 }

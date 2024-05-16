@@ -9,10 +9,10 @@ public:
 	Mesh();
 	void Load(const char *name);
 	GLuint GetVAO() const;
-	size_t GetIndicesCount() const;
+	GLsizei GetIndicesCount() const;
 
 private:
 	glm::quat orientation;
 	GLuint mVAO;
-	size_t mCount;
+	GLsizei mCount;
 };
