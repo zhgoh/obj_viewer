@@ -19,42 +19,19 @@
 #include "arcballcamera.h"
 
 static const char* glsl_version = "#version 330 core";
+
+static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+static void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
+
 static bool mousePressed;
-// static glm::vec3 lastPos;
-static glm::vec3 cameraPosition{ 2.0f, 2.0f, 2.0f };
-
-static double currentMouseX, currentMouseY;
-
 static ArcballCamera camera{ 1024.0f, 768.0f };
 
-static 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
-}
 
-static
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        mousePressed = true;
-        glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
-        camera.StartDrag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
-    } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-        mousePressed = false;
-        camera.StopDrag();
-    }
-}
-
-static
-void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos) {
-    if (mousePressed) {
-        glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
-        camera.Drag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
-    }
-}
-
-Engine::Engine(int width, int height) 
-    : mWidth{ width }, mHeight{ height } {
+Engine::Engine(int width, int height) : 
+    mWidth{ width }, 
+    mHeight{ height }
+{
     if (!glfwInit()) {
         std::cerr << "Error initializing glfw3\n";
         throw std::system_error(std::error_code(), "Error initializing glfw3");
@@ -90,9 +67,9 @@ Engine::~Engine() {
 
 void Engine::Init() {
     // Make sure glfw callbacks are called before imgui inits
-    glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
-    glfwSetCursorPosCallback(mWindow, mouse_pos_callback);
-    glfwSetKeyCallback(mWindow, key_callback);
+    glfwSetMouseButtonCallback(mWindow, MouseButtonCallback);
+    glfwSetCursorPosCallback(mWindow, MouseMoveCallback);
+    glfwSetKeyCallback(mWindow, KeyCallback);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -124,7 +101,6 @@ void Engine::Run() {
     float mouseSpeed = 0.005f;
     double lastTime = glfwGetTime();
 
-    // glm::vec3 cameraPosition{ 2.0f, 2.0f, 2.0f };
     glm::vec3 objPosition{ 0.0f, 0.0f, 0.0f };
     glm::vec3 up{ 0.0f, 1.0f, 0.0f };
     glm::vec3 rotationAxis{ 0.0f, 1.0f, 0.0f };
@@ -206,4 +182,30 @@ void Engine::Render() {
     int display_w, display_h;
     glfwGetFramebufferSize(mWindow, &display_w, &display_h);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        mousePressed = true;
+        double currentMouseX, currentMouseY;
+        glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
+        camera.StartDrag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
+    }
+    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+        mousePressed = false;
+        camera.StopDrag();
+    }
+}
+
+static void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
+    if (mousePressed) {
+        double currentMouseX, currentMouseY;
+        glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
+        camera.Drag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
+    }
 }
