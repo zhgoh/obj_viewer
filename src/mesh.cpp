@@ -5,6 +5,7 @@
 #include <exception>
 #include <string>
 #include <vector>
+#include <cmath>
 
 static
 std::vector<std::string_view> tokenize(std::string_view s, std::string_view del = " ") {
@@ -78,6 +79,9 @@ void Mesh::Load(const char* name) {
 		}
 	}
 
+	Center(vertices);
+	Normalize(vertices);
+
 	mCount = static_cast<GLsizei>(indices.size());
 
 	glGenVertexArrays(1, &mVAO);
@@ -97,6 +101,45 @@ void Mesh::Load(const char* name) {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof indices[0], indices.data(), GL_STATIC_DRAW);
 
 	glBindVertexArray(0);
+}
+
+void Mesh::Center(std::vector<glm::vec3> &vertices) const {
+	// Center the mesh
+	glm::vec3 all{};
+	for (const auto& elem : vertices)
+	{
+		all += elem;
+	}
+	all /= static_cast<float>(vertices.size());
+	for (auto& elem : vertices)
+	{
+		elem -= all;
+	}
+}
+
+void Mesh::Normalize(std::vector<glm::vec3>& vertices) const {
+	auto xDiff = std::make_pair(FLT_MAX, FLT_MIN);
+	auto yDiff = std::make_pair(FLT_MAX, FLT_MIN);
+	auto zDiff = std::make_pair(FLT_MAX, FLT_MIN);
+
+	for (auto& elem : vertices)
+	{
+		xDiff.first = std::min(xDiff.first, elem.x);
+		xDiff.second = std::max(xDiff.second, elem.x);
+
+		yDiff.first = std::min(yDiff.first, elem.y);
+		yDiff.second = std::max(yDiff.second, elem.y);
+
+		zDiff.first = std::min(zDiff.first, elem.z);
+		zDiff.second = std::max(zDiff.second, elem.z);
+	}
+
+	glm::vec3 mid(xDiff.second - xDiff.first, yDiff.second - yDiff.first, zDiff.second - zDiff.first);
+	const auto maxLen = std::max(std::max(mid.x, mid.y), mid.z);
+	for (auto& elem : vertices)
+	{
+		elem /= maxLen;
+	}
 }
 
 GLuint Mesh::GetVAO() const {

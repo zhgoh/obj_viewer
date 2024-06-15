@@ -1,22 +1,16 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 class ArcballCamera {
 public:
     ArcballCamera(float width, float height);
-    void SetViewportSize(float width, float height);
-    void StartDrag(float x, float y);
-    void StopDrag();
-    void Drag(float x, float y);
+    void Rotate(float x, float y);
+    void Zoom(float dval);
+    void Translate(float dx, float dy);
     glm::mat4 GetViewMatrix() const;
 
 private:
-    glm::vec3 ScreenToSphere(float x, float y) const;
-    void Rotation();
-
-    float viewportWidth, viewportHeight, cosValue_2, angle;
-    glm::vec3 startPos, currentPos, rotationalAxis, rotationalAxis_2, position;
-    glm::quat currentQuaternion, lastQuaternion;
+    glm::vec3 target, eye, front, up;
+    float yaw, pitch;
 };

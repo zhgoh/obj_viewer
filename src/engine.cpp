@@ -90,7 +90,10 @@ void Engine::Run() {
     Init();
 
     auto mesh = Mesh();
-    mesh.Load("assets/meshes/cube.obj");
+    // mesh.Load("assets/meshes/cube.obj");
+    // mesh.Load("assets/meshes/suzzane.obj");
+    mesh.Load("assets/meshes/teapot.obj");
+    // mesh.Load("assets/meshes/stanford-bunny.obj");
 
     Shader shader{"assets/shaders/model.vs", "assets/shaders/model.fs"};
     shader.SetFloat("outColor", 1.0f);
@@ -121,7 +124,7 @@ void Engine::Run() {
         glClearColor(0.39f, 0.58f, 0.93f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-         GUI();
+        ImGuiFrame();
 
         ImGui::Begin("Camera");;
         ImGui::DragFloat3("Obj pos", glm::value_ptr(objPosition), 0.01f);
@@ -169,7 +172,7 @@ void Engine::Run() {
     }
 }
 
-void Engine::GUI() {
+void Engine::ImGuiFrame() {
     // Imgui here
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -189,16 +192,16 @@ static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, i
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
+static glm::vec2 lastMousePos;
 static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         mousePressed = true;
         double currentMouseX, currentMouseY;
         glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
-        camera.StartDrag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
+        lastMousePos = glm::vec2{ currentMouseX, currentMouseY };
     }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
         mousePressed = false;
-        camera.StopDrag();
     }
 }
 
@@ -206,6 +209,10 @@ static void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
     if (mousePressed) {
         double currentMouseX, currentMouseY;
         glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
-        camera.Drag(static_cast<float>(currentMouseX), static_cast<float>(currentMouseY));
+        float dx = static_cast<float>(lastMousePos.x - currentMouseX);
+        float dy = static_cast<float>(lastMousePos.y - currentMouseY);
+
+        camera.Rotate(dx, dy);
+        lastMousePos = glm::vec2{ currentMouseX, currentMouseY };
     }
 }

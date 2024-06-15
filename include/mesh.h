@@ -12,6 +12,8 @@ public:
 	GLsizei GetIndicesCount() const;
 
 private:
+	void Center(std::vector<glm::vec3>& vertices) const;
+	void Normalize(std::vector<glm::vec3>& vertices) const;
 	glm::quat orientation;
 	GLuint mVAO;
 	GLsizei mCount;

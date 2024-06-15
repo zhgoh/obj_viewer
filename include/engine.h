@@ -11,7 +11,7 @@ public:
 
 private:
 	void Init();
-	void GUI();
+	void ImGuiFrame();
 	void Render();
 
 	GLFWwindow *mWindow;
