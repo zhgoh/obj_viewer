@@ -17,11 +17,12 @@ add_executable (
     "include/engine.h" 
     "include/shader.h"
     "include/mesh.h"
+    "include/camera.h"
 	"src/main.cpp" 
     "src/engine.cpp" 
     "src/shader.cpp" 
     "src/mesh.cpp"
-   "include/arcballcamera.h" "src/arcballcamera.cpp")
+    "src/camera.cpp")
 
 add_subdirectory(third_party)
 

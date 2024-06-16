@@ -11,6 +11,7 @@ public:
 
 private:
 	void Init();
+	void InitCallbacks();
 	void ImGuiFrame();
 	void Render();
 

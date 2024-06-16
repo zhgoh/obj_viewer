@@ -16,16 +16,17 @@
 
 #include "shader.h"
 #include "mesh.h"
-#include "arcballcamera.h"
+#include "camera.h"
 
 static const char* glsl_version = "#version 330 core";
 
 static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 static void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
+static void MouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
 static bool mousePressed;
-static ArcballCamera camera{ 1024.0f, 768.0f };
+static Camera camera{ 1024.0f, 768.0f };
 
 
 Engine::Engine(int width, int height) : 
@@ -65,11 +66,16 @@ Engine::~Engine() {
     glfwTerminate();
 }
 
-void Engine::Init() {
+void Engine::InitCallbacks() {
     // Make sure glfw callbacks are called before imgui inits
     glfwSetMouseButtonCallback(mWindow, MouseButtonCallback);
     glfwSetCursorPosCallback(mWindow, MouseMoveCallback);
     glfwSetKeyCallback(mWindow, KeyCallback);
+    glfwSetScrollCallback(mWindow, MouseScrollCallback);
+}
+
+void Engine::Init() {
+    InitCallbacks();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -90,9 +96,9 @@ void Engine::Run() {
     Init();
 
     auto mesh = Mesh();
-    // mesh.Load("assets/meshes/cube.obj");
+    mesh.Load("assets/meshes/cube.obj");
     // mesh.Load("assets/meshes/suzzane.obj");
-    mesh.Load("assets/meshes/teapot.obj");
+    // mesh.Load("assets/meshes/teapot.obj");
     // mesh.Load("assets/meshes/stanford-bunny.obj");
 
     Shader shader{"assets/shaders/model.vs", "assets/shaders/model.fs"};
@@ -188,17 +194,17 @@ void Engine::Render() {
 }
 
 static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GL_TRUE);
+    } 
 }
 
-static glm::vec2 lastMousePos;
 static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         mousePressed = true;
         double currentMouseX, currentMouseY;
         glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
-        lastMousePos = glm::vec2{ currentMouseX, currentMouseY };
+        camera.StartDrag(currentMouseX, currentMouseY);
     }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
         mousePressed = false;
@@ -209,10 +215,10 @@ static void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
     if (mousePressed) {
         double currentMouseX, currentMouseY;
         glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
-        float dx = static_cast<float>(lastMousePos.x - currentMouseX);
-        float dy = static_cast<float>(lastMousePos.y - currentMouseY);
-
-        camera.Rotate(dx, dy);
-        lastMousePos = glm::vec2{ currentMouseX, currentMouseY };
+        camera.Drag(currentMouseX, currentMouseY);
     }
+}
+
+static void MouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    camera.Zoom(yoffset);
 }

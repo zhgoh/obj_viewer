@@ -1,11 +1,9 @@
-#include "arcballcamera.h"
+#include "camera.h"
 
 #include <iostream>
 #include <cmath>
 
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/ext/quaternion_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 // Reference: https://github.com/dvsku/devue
 
@@ -18,19 +16,31 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
     return os;
 }
 
-
-ArcballCamera::ArcballCamera(float width, float height) :
+Camera::Camera(float width, float height) :
     target {glm::vec3{0.0f, 0.0f, 0.0f}},
     eye(glm::vec3{ 0.0f, 0.0f, -1.0f }),
     front{glm::vec3{0.0f, 0.0f, -1.0f}},
-    up{ glm::vec3{0.0f, 1.0f, 0.0f} }
+    up{ glm::vec3{0.0f, 1.0f, 0.0f} },
+    lastMousePos{glm::vec2{0.0f, 0.0f}},
+    yaw {}, pitch{}
 {
     Translate(0.0f, 0.0f);
-    Rotate(0.0f, 0.0f);
+    SetRotation(0.0f, 0.0f);
     Zoom(-2.0f);
 }
 
-void ArcballCamera::Rotate(float x, float y) {
+void Camera::StartDrag(double mouseX, double mouseY) {
+    lastMousePos = glm::vec2{ static_cast<float>(mouseX), static_cast<float>(mouseY) };
+}
+
+void Camera::Drag(double mouseX, double mouseY) {
+    float dx = lastMousePos.x - static_cast<float>(mouseX);
+    float dy = lastMousePos.y - static_cast<float>(mouseY);
+    lastMousePos = glm::vec2{ mouseX, mouseY };
+    SetRotation(dx, dy);
+}
+
+void Camera::SetRotation(float x, float y) {
     yaw -= x * SPEED_ROTATE;
     pitch -= y * SPEED_ROTATE;
 
@@ -45,25 +55,27 @@ void ArcballCamera::Rotate(float x, float y) {
     front = glm::normalize(target - eye);
 }
 
-glm::mat4 ArcballCamera::GetViewMatrix() const {
+glm::mat4 Camera::GetViewMatrix() const {
     return glm::lookAt(eye, eye + front, glm::vec3{ 0.0f, 1.0f, 0.0f });;
 }
 
-void ArcballCamera::Zoom(float dval) {
+void Camera::Zoom(float zoom) {
     float distance = glm::length(eye - target);
 
-    bool zoom_blocked = (static_cast<int>(distance) >= 1000.0f && dval < 0.0f) ||
-        (static_cast<int>(distance) <= 0.1f && dval > 0);
+    bool zoom_blocked = 
+        (distance >= 110.0f && zoom < -20.0f) ||
+        (distance <= 3.0f && zoom > 0.0f);
 
-    if (zoom_blocked) return;
+    if (zoom_blocked) 
+        return;
 
-    distance -= dval;
+    distance -= zoom;
 
     glm::vec3 direction = glm::normalize(eye - target);
     eye = target + direction * distance;
 }
 
-void ArcballCamera::Translate(float dx, float dy) {
+void Camera::Translate(float dx, float dy) {
     glm::vec3 cameraRight = glm::normalize(glm::cross(front, up));
 
     eye -= dx * SPEED_TRANSLATE * cameraRight;
