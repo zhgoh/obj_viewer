@@ -2,7 +2,8 @@
 
 struct GLFWwindow;
 
-class Engine {
+class Engine 
+{
 public:
 	Engine(int width, int height);
 	~Engine();

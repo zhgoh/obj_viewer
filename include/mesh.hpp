@@ -1,10 +1,12 @@
 #pragma once
 
+#include <vector>
 #include <glad/gl.h>
 #include <glm/gtc/quaternion.hpp>
 
 
-class Mesh {
+class Mesh 
+{
 public:
 	Mesh();
 	void Load(const char *name);

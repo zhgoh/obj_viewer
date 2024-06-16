@@ -1,4 +1,4 @@
-#include "engine.h"
+#include "engine.hpp"
 
 #include <iostream>
 #include <exception>
@@ -14,9 +14,9 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "shader.h"
-#include "mesh.h"
-#include "camera.h"
+#include "shader.hpp"
+#include "mesh.hpp"
+#include "camera.hpp"
 
 static const char* glsl_version = "#version 330 core";
 
@@ -33,7 +33,8 @@ Engine::Engine(int width, int height) :
     mWidth{ width }, 
     mHeight{ height }
 {
-    if (!glfwInit()) {
+    if (!glfwInit()) 
+    {
         std::cerr << "Error initializing glfw3\n";
         throw std::system_error(std::error_code(), "Error initializing glfw3");
     }
@@ -42,7 +43,8 @@ Engine::Engine(int width, int height) :
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
     mWindow = glfwCreateWindow(width, height, "Hello World", nullptr, nullptr);
-    if (!mWindow) {
+    if (!mWindow) 
+    {
         std::cerr << "Error creating glfw3 window\n";
         glfwTerminate();
         throw std::system_error(std::error_code(), "Error creating glfw3 window");
@@ -51,13 +53,15 @@ Engine::Engine(int width, int height) :
     glfwMakeContextCurrent(mWindow);
 
     int version = gladLoadGL(glfwGetProcAddress);
-    if (version == 0) {
+    if (version == 0) 
+    {
         std::cerr << "Failed to initialize GLAD\n";
         throw std::system_error(std::error_code(), "Error initializing glfw3");
     }
 }
 
-Engine::~Engine() {
+Engine::~Engine() 
+{
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -66,7 +70,8 @@ Engine::~Engine() {
     glfwTerminate();
 }
 
-void Engine::InitCallbacks() {
+void Engine::InitCallbacks() 
+{
     // Make sure glfw callbacks are called before imgui inits
     glfwSetMouseButtonCallback(mWindow, MouseButtonCallback);
     glfwSetCursorPosCallback(mWindow, MouseMoveCallback);
@@ -74,7 +79,8 @@ void Engine::InitCallbacks() {
     glfwSetScrollCallback(mWindow, MouseScrollCallback);
 }
 
-void Engine::Init() {
+void Engine::Init() 
+{
     InitCallbacks();
 
     IMGUI_CHECKVERSION();
@@ -92,7 +98,8 @@ void Engine::Init() {
     ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-void Engine::Run() {
+void Engine::Run() 
+{
     Init();
 
     auto mesh = Mesh();
@@ -120,7 +127,8 @@ void Engine::Run() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_CULL_FACE);
 
-    while (!glfwWindowShouldClose(mWindow)) {
+    while (!glfwWindowShouldClose(mWindow)) 
+    {
         double currentTime = glfwGetTime();
         float deltaTime = float(currentTime - lastTime);
         lastTime = currentTime;
@@ -178,7 +186,8 @@ void Engine::Run() {
     }
 }
 
-void Engine::ImGuiFrame() {
+void Engine::ImGuiFrame() 
+{
     // Imgui here
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -186,39 +195,51 @@ void Engine::ImGuiFrame() {
     ImGui::NewFrame();
 }
 
-void Engine::Render() {
+void Engine::Render() 
+{
     ImGui::Render();
     int display_w, display_h;
     glfwGetFramebufferSize(mWindow, &display_w, &display_h);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+static 
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) 
+{
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GL_TRUE);
     } 
 }
 
-static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+static 
+void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) 
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) 
+    {
         mousePressed = true;
         double currentMouseX, currentMouseY;
         glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
         camera.StartDrag(currentMouseX, currentMouseY);
     }
-    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) 
+    {
         mousePressed = false;
     }
 }
 
-static void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
-    if (mousePressed) {
+static 
+void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos) 
+{
+    if (mousePressed) 
+    {
         double currentMouseX, currentMouseY;
         glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
         camera.Drag(currentMouseX, currentMouseY);
     }
 }
 
-static void MouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+static 
+void MouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) 
+{
     camera.Zoom(yoffset);
 }

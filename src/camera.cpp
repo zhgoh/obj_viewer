@@ -1,17 +1,19 @@
-#include "camera.h"
+#include "camera.hpp"
 
 #include <iostream>
 #include <cmath>
 
 #include <glm/gtc/matrix_transform.hpp>
 
+// Camera code referenced from
 // Reference: https://github.com/dvsku/devue
 
 static float SPEED_TRANSLATE = 0.005f;
 static float SPEED_ROTATE = 0.1f;
 
 static
-std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
+std::ostream& operator<<(std::ostream& os, const glm::vec3& v) 
+{
     os << v.x << " : " << v.y << " : " << v.z;
     return os;
 }
@@ -29,45 +31,65 @@ Camera::Camera(float width, float height) :
     Zoom(-2.0f);
 }
 
-void Camera::StartDrag(double mouseX, double mouseY) {
-    lastMousePos = glm::vec2{ static_cast<float>(mouseX), static_cast<float>(mouseY) };
+void Camera::StartDrag(double mouseX, double mouseY) 
+{
+    lastMousePos = glm::vec2{ 
+        static_cast<float>(mouseX), 
+        static_cast<float>(mouseY) 
+    };
 }
 
-void Camera::Drag(double mouseX, double mouseY) {
+void Camera::Drag(double mouseX, double mouseY) 
+{
     float dx = lastMousePos.x - static_cast<float>(mouseX);
     float dy = lastMousePos.y - static_cast<float>(mouseY);
     lastMousePos = glm::vec2{ mouseX, mouseY };
     SetRotation(dx, dy);
 }
 
-void Camera::SetRotation(float x, float y) {
+void Camera::SetRotation(float x, float y) 
+{
     yaw -= x * SPEED_ROTATE;
     pitch -= y * SPEED_ROTATE;
 
-    if (pitch > 89.0f) pitch = 89.0f;
-    if (pitch < -89.0f) pitch = -89.0f;
+    if (pitch > 89.0f)
+    {
+        pitch = 89.0f;
+    }
+        
+    if (pitch < -89.0f)
+    {
+        pitch = -89.0f;
+    }
 
     float distance = glm::length(eye - target);
-    eye.x = target.x + distance * cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+    const auto cosPitch = cos(glm::radians(pitch));
+    eye.x = target.x + distance * cos(glm::radians(yaw)) * cosPitch;
     eye.y = target.y + distance * sin(glm::radians(pitch));
-    eye.z = target.z + distance * sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    eye.z = target.z + distance * sin(glm::radians(yaw)) * cosPitch;
 
     front = glm::normalize(target - eye);
 }
 
-glm::mat4 Camera::GetViewMatrix() const {
+glm::mat4 Camera::GetViewMatrix() const 
+{
     return glm::lookAt(eye, eye + front, glm::vec3{ 0.0f, 1.0f, 0.0f });;
 }
 
-void Camera::Zoom(float zoom) {
+void Camera::Zoom(float zoom) 
+{
     float distance = glm::length(eye - target);
 
-    bool zoom_blocked = 
+    bool isBlocked = 
         (distance >= 110.0f && zoom < -20.0f) ||
         (distance <= 3.0f && zoom > 0.0f);
 
-    if (zoom_blocked) 
+    if (isBlocked)
+    {
         return;
+    }
+        
 
     distance -= zoom;
 
@@ -75,7 +97,8 @@ void Camera::Zoom(float zoom) {
     eye = target + direction * distance;
 }
 
-void Camera::Translate(float dx, float dy) {
+void Camera::Translate(float dx, float dy) 
+{
     glm::vec3 cameraRight = glm::normalize(glm::cross(front, up));
 
     eye -= dx * SPEED_TRANSLATE * cameraRight;

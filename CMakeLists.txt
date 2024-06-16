@@ -14,15 +14,17 @@ project ("obj_loader")
 # Add source to this project's executable.
 add_executable (
 	obj_loader 
-    "include/engine.h" 
-    "include/shader.h"
-    "include/mesh.h"
-    "include/camera.h"
+    "include/engine.hpp" 
+    "include/shader.hpp"
+    "include/mesh.hpp"
+    "include/camera.hpp"
+    "include/input.hpp"
 	"src/main.cpp" 
     "src/engine.cpp" 
     "src/shader.cpp" 
     "src/mesh.cpp"
-    "src/camera.cpp")
+    "src/camera.cpp" 
+    "src/input.cpp")
 
 add_subdirectory(third_party)
 

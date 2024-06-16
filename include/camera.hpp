@@ -2,7 +2,8 @@
 
 #include <glm/glm.hpp>
 
-class Camera {
+class Camera 
+{
 public:
     Camera(float width, float height);
     void StartDrag(double mouseX, double mouseY);
@@ -14,7 +15,6 @@ public:
 
 private:
     void SetRotation(float x, float y);
-    
 
     glm::vec3 target, eye, front, up;
     glm::vec2 lastMousePos;

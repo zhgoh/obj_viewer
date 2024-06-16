@@ -4,7 +4,8 @@
 #include <string_view>
 #include <glm/matrix.hpp>
 
-class Shader {
+class Shader 
+{
 public:
 	Shader(const char* vertexPath, const char* fragmentPath);
 	void Use() const;

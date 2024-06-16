@@ -1,4 +1,4 @@
-#include "shader.h"
+#include "shader.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -8,7 +8,8 @@
 #include <glad/gl.h>
 #include <glm/gtc/type_ptr.hpp>
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath) {
+Shader::Shader(const char* vertexPath, const char* fragmentPath) 
+{
 	auto vertexShader = LoadFile(vertexPath);
 	auto fragShader = LoadFile(fragmentPath);
 
@@ -17,13 +18,16 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
 	programID = Link(vertex, fragment);
 }
 
-std::string Shader::LoadFile(const char* path) const {
-	if (std::ifstream ifs{ path }; ifs.good()) {
+std::string Shader::LoadFile(const char* path) const 
+{
+	if (std::ifstream ifs{ path }; ifs.good()) 
+	{
 		std::stringstream ss;
 		ss << ifs.rdbuf();
 		return ss.str();
 	}
-	else {
+	else 
+	{
 		std::cerr << "Error loading shader file\n";
 		throw std::system_error(std::error_code(), "Error loading shader file");
 	}
@@ -36,7 +40,8 @@ unsigned int Shader::Compile(const char* shader, int shaderType) const {
 
 	int success;
 	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
-	if (!success) {
+	if (!success) 
+	{
 		char infoLog[512];
 		glGetShaderInfoLog(shaderId, 512, NULL, infoLog);
 		std::cerr << "Error compiling shader file\n" << infoLog << std::endl;
@@ -44,7 +49,8 @@ unsigned int Shader::Compile(const char* shader, int shaderType) const {
 	return shaderId;
 }
 
-unsigned int Shader::Link(unsigned int vertexShader, unsigned int fragmentShader) const {
+unsigned int Shader::Link(unsigned int vertexShader, unsigned int fragmentShader) const 
+{
 	unsigned int program = glCreateProgram();
 	glAttachShader(program, vertexShader);
 	glAttachShader(program, fragmentShader);
@@ -52,7 +58,8 @@ unsigned int Shader::Link(unsigned int vertexShader, unsigned int fragmentShader
 
 	int success;
 	glGetProgramiv(program, GL_LINK_STATUS, &success);
-	if (!success) {
+	if (!success) 
+	{
 		char infoLog[512];
 		glGetProgramInfoLog(program, 512, NULL, infoLog);
 		std::cerr << "Error linking shader file.\n" << infoLog << std::endl;
@@ -64,22 +71,27 @@ unsigned int Shader::Link(unsigned int vertexShader, unsigned int fragmentShader
 	return program;
 }
 
-void Shader::Use() const {
+void Shader::Use() const 
+{
 	glUseProgram(programID);
 }
 
-void Shader::SetBool(std::string_view name, bool value) const {
+void Shader::SetBool(std::string_view name, bool value) const 
+{
 	glUniform1i(glGetUniformLocation(programID, name.data()), (int)value);
 }
 
-void Shader::SetInt(std::string_view name, int value) const {
+void Shader::SetInt(std::string_view name, int value) const 
+{
 	glUniform1i(glGetUniformLocation(programID, name.data()), value);
 }
 
-void Shader::SetFloat(std::string_view name, float value) const {
+void Shader::SetFloat(std::string_view name, float value) const 
+{
 	glUniform1f(glGetUniformLocation(programID, name.data()), value);
 }
 
-void Shader::SetMatrix(std::string_view name, glm::mat4 value) const {
+void Shader::SetMatrix(std::string_view name, glm::mat4 value) const 
+{
 	glUniformMatrix4fv(glGetUniformLocation(programID, name.data()), 1, GL_FALSE, glm::value_ptr(value));
 }
