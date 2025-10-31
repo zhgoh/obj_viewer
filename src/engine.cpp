@@ -28,8 +28,28 @@ static void MouseScrollCallback(GLFWwindow* window, double xoffset, double yoffs
 static bool mousePressed;
 static Camera camera{ 1024.0f, 768.0f };
 
+// Trackball state
+struct Trackball {
+    bool isDragging = false;
+    glm::vec2 prevMousePos;       // Previous mouse position (screen space)
+    glm::quat worldRotation;      // Current world-space rotation (quat)
+    glm::quat cameraRotation;     // Camera's world-space orientation (quat)
+    glm::quat deltaRotation;      // Accumulated camera-space rotation delta (quat)
+    float gizmoRadius = 4000.0f;   // Gizmo radius (pixels)
+};
 
-Engine::Engine(int width, int height) : 
+// Convert mouse movement to a rotation quaternion (camera space)
+glm::quat mouseDeltaToQuat(const glm::vec2& delta, const float radius) {
+    const float angle = glm::length(delta) / radius;  // Arc length → angle (radians)
+    if (angle < 0.0001f) return {1.0f, 0.0f, 0.0f, 0.0f};  // No rotation
+
+    // Axis is perpendicular to mouse movement (camera space)
+    const glm::vec3 axis = glm::normalize(glm::vec3(-delta.y, delta.x, 0.0f));
+    return glm::angleAxis(angle, axis);
+}
+
+
+Engine::Engine(int width, int height) :
     mWidth{ width }, 
     mHeight{ height }
 {
@@ -108,6 +128,11 @@ void Engine::Run()
     // mesh.Load("assets/meshes/teapot.obj");
     // mesh.Load("assets/meshes/stanford-bunny.obj");
 
+    // Initialize trackball
+    Trackball trackball;
+    trackball.worldRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);  // Identity rotation
+    trackball.cameraRotation = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));  // Assume camera faces -Z
+
     Shader shader{"assets/shaders/model.vs", "assets/shaders/model.fs"};
     shader.SetFloat("outColor", 1.0f);
 
@@ -135,6 +160,35 @@ void Engine::Run()
 
         glfwPollEvents();
 
+        // Handle mouse input
+        double mouseX, mouseY;
+        glfwGetCursorPos(mWindow, &mouseX, &mouseY);
+        glm::vec2 currentMousePos(mouseX, mouseY);
+
+        // Left mouse button drag → trackball rotation
+        if (glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            if (!trackball.isDragging) {
+                // Start drag: cache initial state
+                trackball.isDragging = true;
+                trackball.prevMousePos = currentMousePos;
+                trackball.deltaRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);  // Reset delta
+            } else {
+                // Update rotation delta
+                glm::vec2 mouseDelta = currentMousePos - trackball.prevMousePos;
+                glm::quat frameDelta = mouseDeltaToQuat(mouseDelta, trackball.gizmoRadius);
+
+                // Accumulate delta (camera space)
+                trackball.deltaRotation = frameDelta * trackball.deltaRotation;  // Order matters!
+                trackball.prevMousePos = currentMousePos;
+
+                // Apply to world rotation: c * delta * c⁻¹ * w
+                glm::quat worldDelta = trackball.cameraRotation * trackball.deltaRotation * glm::conjugate(trackball.cameraRotation);
+                trackball.worldRotation = worldDelta * trackball.worldRotation;
+            }
+        } else {
+            trackball.isDragging = false;
+        }
+
         glClearColor(0.39f, 0.58f, 0.93f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         
@@ -147,12 +201,16 @@ void Engine::Run()
         ImGui::DragFloat4("Obj rotation", glm::value_ptr(objRotation), 0.01f);
         ImGui::End();
 
-        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), objPosition);
-        glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3{ 1.0f, 1.0f, 1.0f });
-        glm::mat4 rotationMatrix = glm::rotate(glm::mat4{1.0f}, rotationAngle, rotationAxis);
+        // glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), objPosition);
+        // glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3{ 1.0f, 1.0f, 1.0f });
+        // glm::mat4 rotationMatrix = glm::rotate(glm::mat4{1.0f}, rotationAngle, rotationAxis);
         // glm::mat4 rotationMatrix = glm::mat4_cast(objRotation);
 
-        glm::mat4 modelMatrix = translationMatrix * rotationMatrix * scaleMatrix;
+        // glm::mat4 modelMatrix = translationMatrix * rotationMatrix * scaleMatrix;
+
+        glm::vec3 eulerAngles = glm::eulerAngles(trackball.worldRotation);
+        glm::mat4 rotationMatrix = glm::mat4_cast(trackball.worldRotation);
+        glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), objPosition) * rotationMatrix;
 
         // glm::vec3 cameraTarget{ 0.0f, 0.0f, 0.0f };
         // const glm::mat4 viewMatrix = glm::lookAt(cameraPosition, cameraTarget, up);
@@ -167,7 +225,7 @@ void Engine::Run()
         const auto winHeight = static_cast<float>(mHeight);
 
         glm::mat4 projectionMatrix = glm::perspective(
-            glm::radians(fieldOfView),  // The vertical Field of View, in radians: the amount of "zoom". Think "camera lens". Usually between 90� (extra wide) and 30� (quite zoomed in)
+            glm::radians(fieldOfView),  // The vertical Field of View, in radians: the amount of "zoom". Think "camera lens". Usually between 90� (extra wide) and 30� (quite zoomed in)
             winWidth / winHeight,       // Aspect Ratio. Depends on the size of your window. Notice that 4/3 == 800/600 == 1280/960, sounds familiar?
             nearClip,                   // Near clipping plane. Keep as big as possible, or you'll get precision issues.
             farClip                     // Far clipping plane. Keep as little as possible.
@@ -219,7 +277,7 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
         mousePressed = true;
         double currentMouseX, currentMouseY;
         glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
-        camera.StartDrag(currentMouseX, currentMouseY);
+        // camera.StartDrag(currentMouseX, currentMouseY);
     }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) 
     {
@@ -234,7 +292,6 @@ void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
     {
         double currentMouseX, currentMouseY;
         glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
-        camera.Drag(currentMouseX, currentMouseY);
     }
 }
 

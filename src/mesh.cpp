@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <cfloat>
 
 static
 std::vector<std::string_view> tokenize(std::string_view s, std::string_view del = " ") 

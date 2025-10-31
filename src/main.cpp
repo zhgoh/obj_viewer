@@ -1,6 +1,6 @@
 ﻿#include "engine.hpp"
 
-int main() 
+int main()
 {
     Engine engine(1024, 768);
     engine.Run();

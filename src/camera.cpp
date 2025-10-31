@@ -74,7 +74,7 @@ void Camera::SetRotation(float x, float y)
 
 glm::mat4 Camera::GetViewMatrix() const 
 {
-    return glm::lookAt(eye, eye + front, glm::vec3{ 0.0f, 1.0f, 0.0f });;
+    return glm::lookAt(eye, eye + front, glm::vec3{ 0.0f, 1.0f, 0.0f });
 }
 
 void Camera::Zoom(float zoom) 
